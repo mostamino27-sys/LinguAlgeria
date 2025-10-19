@@ -7,11 +7,13 @@ import re
 app = Flask(__name__)
 CORS(app)
 
+# إعدادات OpenRouter
 OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY')
 API_URL = 'https://openrouter.ai/api/v1/chat/completions'
-MODEL = 'meta-llama/llama-3.3-70b-instruct'
+MODEL = 'meta-llama/llama-3.2-3b-instruct:free'  # ✅ Model مجاني مضمون!
 
 def call_ai(messages, max_tokens=2000):
+    """استدعاء Llama 3.2 عبر OpenRouter"""
     if not OPENROUTER_API_KEY:
         raise Exception('Clé API non configurée')
     
@@ -30,16 +32,24 @@ def call_ai(messages, max_tokens=2000):
                 'max_tokens': max_tokens,
                 'temperature': 0.7
             },
-            timeout=60
+            timeout=90
         )
         
         if response.status_code != 200:
-            error_data = response.json()
-            raise Exception(f'Erreur API {response.status_code}')
+            error_msg = f"Erreur {response.status_code}"
+            try:
+                error_data = response.json()
+                if 'error' in error_
+                    error_msg = error_data['error'].get('message', error_msg)
+            except:
+                pass
+            raise Exception(error_msg)
         
         data = response.json()
         return data['choices'][0]['message']['content']
         
+    except requests.exceptions.Timeout:
+        raise Exception('Délai dépassé')
     except Exception as e:
         raise Exception(str(e))
 
@@ -61,28 +71,46 @@ def analyze_dialect():
 Texte: {text}
 
 Instructions:
-1. Identifie les mots d'origine française
-2. Donne le mot français original
-3. Propose des alternatives en arabe
-4. Calcule le pourcentage de français
-5. Identifie les domaines lexicaux
+1. Identifie TOUS les mots d'origine française
+2. Donne le mot français original entre parenthèses
+3. Propose des alternatives en arabe/darija
+4. Calcule le pourcentage approximatif de français
+5. Identifie les domaines (cuisine, transport, etc.)
 
-Format:
-📝 TEXTE ANALYSÉ: [texte avec mots français en MAJUSCULES]
-📊 STATISTIQUES: Pourcentage, nombre de mots
-🔍 MOTS FRANÇAIS: Liste avec alternatives
-💡 ANALYSE: Brève analyse sociolinguistique
+Format de réponse:
 
-Réponds en français."""
+📝 TEXTE ANALYSÉ:
+[Réécris le texte avec les mots français en MAJUSCULES]
+
+📊 STATISTIQUES:
+• Pourcentage français: X%
+• Nombre de mots français: X
+• Domaines: [liste]
+
+🔍 MOTS FRANÇAIS IDENTIFIÉS:
+1. [mot algérien] (français: xxx) → Alternative arabe: [xxx]
+2. ...
+
+💡 ANALYSE SOCIOLINGUISTIQUE:
+[Brève analyse de 2-3 phrases]
+
+Réponds en français de manière claire."""
 
         result = call_ai([
-            {'role': 'system', 'content': 'Tu es un sociolinguiste expert du dialecte algérien.'},
-            {'role': 'user', 'content': prompt}
+            {
+                'role': 'system',
+                'content': 'Tu es un sociolinguiste expert du dialecte algérien. Tu analyses avec précision l\'influence française.'
+            },
+            {
+                'role': 'user',
+                'content': prompt
+            }
         ])
         
         return jsonify({'result': result, 'success': True})
         
     except Exception as e:
+        print(f'Erreur: {str(e)}')
         return jsonify({'error': str(e), 'success': False}), 500
 
 @app.route('/api/compare', methods=['POST'])
@@ -95,27 +123,34 @@ def compare_texts():
         if not text1 or not text2:
             return jsonify({'error': 'Deux textes requis', 'success': False}), 400
         
-        prompt = f"""Compare ces deux textes algériens:
+        prompt = f"""Compare ces deux textes algériens en termes d'influence française:
 
 Texte 1: {text1}
 Texte 2: {text2}
 
-Analyse:
+Analyse comparative:
 1. Pourcentage de français dans chaque texte
-2. Quel texte est le plus influencé?
-3. Différences dans les domaines
-4. Conclusions
+2. Quel texte est le plus influencé et pourquoi?
+3. Différences dans les domaines lexicaux
+4. Conclusions sociolinguistiques
 
-Réponds en français."""
+Réponds en français de manière structurée."""
 
         result = call_ai([
-            {'role': 'system', 'content': 'Tu es un sociolinguiste comparant des textes algériens.'},
-            {'role': 'user', 'content': prompt}
+            {
+                'role': 'system',
+                'content': 'Tu es un sociolinguiste comparant des textes algériens.'
+            },
+            {
+                'role': 'user',
+                'content': prompt
+            }
         ])
         
         return jsonify({'result': result, 'success': True})
         
     except Exception as e:
+        print(f'Erreur: {str(e)}')
         return jsonify({'error': str(e), 'success': False}), 500
 
 @app.route('/health')
@@ -128,5 +163,9 @@ def health():
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    print('🇩🇿 LinguAlgeria - Llama 3.3 70B')
+    print('=' * 60)
+    print('🇩🇿 LinguAlgeria - Démarrage')
+    print(f'🤖 Model: {MODEL}')
+    print(f'🔑 API: {"✅" if OPENROUTER_API_KEY else "❌"}')
+    print('=' * 60)
     app.run(host='0.0.0.0', port=port, debug=False)
