@@ -13,7 +13,7 @@ MODEL = 'meta-llama/llama-3.2-3b-instruct:free'
 
 def call_ai(messages, max_tokens=2000):
     if not OPENROUTER_API_KEY:
-        raise Exception('Clé API non configurée')
+        raise Exception('Cle API non configuree')
     
     try:
         response = requests.post(
@@ -37,7 +37,7 @@ def call_ai(messages, max_tokens=2000):
             error_msg = f"Erreur {response.status_code}"
             try:
                 error_data = response.json()
-                if 'error' in error_  # ✅ هنا كان الخطأ!
+                if 'error' in error_
                     error_msg = error_data['error'].get('message', error_msg)
             except:
                 pass
@@ -47,7 +47,7 @@ def call_ai(messages, max_tokens=2000):
         return data['choices'][0]['message']['content']
         
     except requests.exceptions.Timeout:
-        raise Exception('Délai dépassé')
+        raise Exception('Delai depasse')
     except Exception as e:
         raise Exception(str(e))
 
@@ -64,24 +64,17 @@ def analyze_dialect():
         if not text:
             return jsonify({'error': 'Texte requis', 'success': False}), 400
         
-        prompt = f"""Analyse ce texte en dialecte algérien et identifie l'influence française.
+        prompt = f"""Analyse ce texte en dialecte algerien:
 
-Texte: {text}
-
-Instructions:
-1. Identifie TOUS les mots d'origine française
-2. Donne le mot français original
-3. Propose des alternatives en arabe
-4. Calcule le pourcentage de français
-5. Identifie les domaines
+{text}
 
 Format:
-📝 TEXTE ANALYSÉ: [texte avec mots français en MAJUSCULES]
-📊 STATISTIQUES: Pourcentage, nombre
-🔍 MOTS FRANÇAIS: Liste avec alternatives
-💡 ANALYSE: Brève analyse
+1. Texte analyse avec mots francais en MAJUSCULES
+2. Statistiques
+3. Mots francais identifies
+4. Analyse sociolinguistique
 
-Réponds en français."""
+Reponds en francais."""
 
         result = call_ai([
             {'role': 'system', 'content': 'Tu es un sociolinguiste expert.'},
@@ -103,12 +96,12 @@ def compare_texts():
         if not text1 or not text2:
             return jsonify({'error': 'Deux textes requis', 'success': False}), 400
         
-        prompt = f"""Compare ces textes algériens:
+        prompt = f"""Compare ces textes algeriens:
 
 Texte 1: {text1}
 Texte 2: {text2}
 
-Compare l'influence française."""
+Compare l'influence francaise."""
 
         result = call_ai([
             {'role': 'system', 'content': 'Sociolinguiste comparatif.'},
@@ -130,6 +123,6 @@ def health():
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    print('🇩🇿 LinguAlgeria Starting...')
+    print('LinguAlgeria Starting...')
     print(f'Model: {MODEL}')
     app.run(host='0.0.0.0', port=port, debug=False)
